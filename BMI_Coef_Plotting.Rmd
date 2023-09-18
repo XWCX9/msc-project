@@ -29,7 +29,6 @@ library(gridExtra)
 
 all_bmi_data$regression <- factor(all_bmi_data$regression, levels = c("phenotypic", "mr_unrel", "mr_unrel_PCs", "mr_wf", "mr_wf_PCs"))
 
-# 2. Merge this mapping into all_bmi_data
 mapping_df <- data.frame(
   depvar = c("zNPREG05", "zNPENG05", "zNPLES05", "zNPENG08", "zNPLES08", "zNPREG08", "zNPLES09", "zNPREG09"),
   ExamDescription = c("Grade 5 Numeracy", "Grade 5 English", "Grade 5 Reading",
@@ -40,10 +39,8 @@ mapping_df <- data.frame(
 all_bmi_data <- merge(all_bmi_data, mapping_df, by = "depvar", all.x = TRUE)
 
 exam_wise_plot_bmi <- function(exam) {
-  # Filtering the data by exam:
   data_for_plot <- all_bmi_data[all_bmi_data$depvar == exam,]
   
-  # Getting the descriptive title for the current exam
   descriptive_title <- unique(data_for_plot$ExamDescription.x)
   
   plot <- ggplot(data_for_plot, aes(x = regression, y = coef, color = regression)) +
@@ -66,10 +63,8 @@ exam_wise_plot_bmi <- function(exam) {
   return(plot)
 }
 
-# Generating the plots
 plots_bmi <- lapply(unique(all_bmi_data$depvar), exam_wise_plot_bmi)
 
-# Printing the plots without the legend
 print(plots_bmi)
 
 ```
@@ -91,7 +86,6 @@ legend_plot_bmi <- ggplot(all_bmi_data[all_bmi_data$depvar == unique(all_bmi_dat
       legend.position = "right"
     )
 
-# Printing the legend plot
 print(legend_plot_bmi)
 ```
 

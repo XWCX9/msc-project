@@ -1,0 +1,155 @@
+---
+title: "Project"
+author: "Poppaea"
+date: "2023-07-05"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r installing packages and loading libraries, echo=TRUE, include=FALSE, message=TRUE}
+#install.packages("remotes")
+library(remotes)
+
+remotes::install_github("MRCIEU/gwasvcf")
+remotes::install_github("MRCIEU/TwoSampleMR")
+
+#install.packages("devtools")
+library(devtools)
+
+library(xfun)
+library(TwoSampleMR)
+library(ggplot2)
+library(knitr)
+library(dplyr)
+```
+
+### Data for the trait -> education direction, unrelated individuals
+```{r}
+un_bmi_instrument <- extract_instruments(outcomes = 'ukb-b-19953')
+save(un_bmi_instrument, file = "un_bmi_instrument.RData")
+```
+
+```{r}
+un_hei_instrument <- extract_instruments(outcomes = 'ieu-a-89')
+save(un_hei_instrument, file = "un_hei_instrument.RData")
+```
+
+### Extracting tables of weights for unrelated individual instruments:
+```{r}
+un_bmi_wei <- extract_outcome_data(snps = un_bmi_instrument$SNP, outcomes = 'ukb-b-19953')
+un_bmi_wei <- subset(un_bmi_wei, select = c("SNP", "beta.outcome"))
+save(un_bmi_wei, file = "un_bmi_wei.RData")
+```
+
+```{r}
+un_hei_wei <- extract_outcome_data(snps = un_hei_instrument$SNP, outcomes = 'ieu-a-89')
+un_hei_wei <- subset(un_hei_wei, select = c("SNP", "beta.outcome"))
+save(un_hei_wei, file = "un_hei_wei.RData")
+```
+
+### Downloading the outcome variables:
+```{r}
+un_ed_bmi_out <- extract_outcome_data(un_bmi_instrument$SNP, outcomes = 'ieu-a-1239')
+save(un_ed_bmi_out, file = "un_ed_bmi_out.RData")
+```
+
+```{r}
+un_ed_hei_out <- extract_outcome_data(un_hei_instrument$SNP, outcomes = 'ieu-a-1239')
+save(un_ed_hei_out, file = "un_ed_hei_out.RData")
+```
+
+# Data for the education -> trait direction, unrelated individuals
+### The instrument:
+```{r}
+un_ed_instrument <- extract_instruments(outcome = 'ieu-a-1239')
+save(un_ed_instrument, file = "un_ed_instrument.RData")
+```
+
+### The weights:
+```{r}
+un_ed_wei <- extract_outcome_data(snps = un_ed_instrument$SNP, outcomes = 'ieu-a-1239')
+un_ed_wei <- subset(un_ed_wei, select = c("SNP", "beta.outcome"))
+save(un_ed_wei, file = "un_ed_wei.RData")
+```
+
+### Outcome data for both traits:
+```{r}
+un_hei_out <- extract_outcome_data(snps = un_ed_instrument$SNP, outcomes = 'ieu-a-89')
+save(un_hei_out, file = "un_hei_out.RData")
+```
+
+```{r}
+un_bmi_out <- extract_outcome_data(snps = un_ed_instrument$SNP, outcomes = 'ukb-b-19953')
+save(un_bmi_out, file = "un_bmi_out.RData")
+```
+
+# Downloading within-family data for the trait -> education direction of analysis
+### The instruments:
+```{r}
+wf_hei_instrument <- extract_instruments(outcomes = 'ieu-b-4814')
+save(wf_hei_instrument, file = "wf_hei_instrument.RData")
+```
+
+```{r}
+wf_bmi_instrument <- extract_instruments(outcomes = 'ieu-b-4816') # this instrument is very small...
+save(wf_bmi_instrument, file = "wf_bmi_instrument.RData")
+```
+
+### Their weights:
+```{r}
+wf_hei_wei <- extract_outcome_data(wf_hei_instrument$SNP, outcomes = 'ieu-b-4814')
+wf_hei_wei <- subset(wf_hei_wei, select = c("SNP", "beta.outcome"))
+save(wf_hei_wei, file = "wf_hei_wei.RData")
+```
+
+```{r}
+wf_bmi_wei <- extract_outcome_data(wf_bmi_instrument$SNP, outcomes = 'ieu-b-4816') # cane from a small instrument
+wf_bmi_wei <- subset(wf_bmi_wei, select = c("SNP", "beta.outcome"))
+save(wf_bmi_wei, file = "wf_bmi_wei.RData")
+```
+
+### Extracting the within-family outcome variables for education:
+```{r}
+wf_hei_ed_out <- extract_outcome_data(wf_hei_instrument$SNP, outcomes = 'ieu-b-4836') # this doesn't exist
+save(wf_hei_ed_out, file = "wf_hei_ed_out.RData") # even though the instrument is significant
+```
+
+```{r}
+wf_bmi_ed_out <- extract_outcome_data(wf_bmi_instrument$SNP, outcomes = 'ieu-b-4836') # doesn't produce anything?
+save(wf_bmi_ed_out, file = "wf_bmi_ed_out.RData")
+```
+
+# Within-family data for the education -> trait direction:
+### Extracting the education instrument:
+```{r}
+wf_rev_ed_instrument <- extract_instruments(outcomes = 'ieu-b-4836')
+save(wf_rev_ed_instrument, file = "wf_rev_ed_instrument.RData")
+```
+
+### Extracting the weights for this instrument:
+```{r}
+wf_rev_ed_wei <- extract_outcome_data(snps = wf_rev_ed_instrument$SNP, outcomes = 'ieu-b-4836')
+wf_rev_ed_wei <- subset(wf_rev_ed_wei, select = c("SNP", "beta.outcome"))
+save(wf_rev_ed_wei, file = "wf_rev_ed_wei.RData")
+```
+
+### Extracting height and BMI outcome variables (within-family)
+```{r}
+wf_rev_hei_out <- extract_outcome_data(snps = wf_rev_ed_instrument$SNP, outcomes = 'ieu-b-4814') # check these
+save(wf_rev_hei_out, file = "wf_rev_hei_out.RData")
+```
+
+```{r}
+wf_rev_bmi_out <- extract_outcome_data(snps = wf_rev_ed_instrument$SNP, outcomes = 'ieu-b-4816') # check these
+save(wf_rev_bmi_out, file = "wf_rev_bmi_out.RData")
+```
+
+
+
+

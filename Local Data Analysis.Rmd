@@ -1,0 +1,539 @@
+---
+title: "Project"
+author: "Poppaea"
+date: "2023-07-05"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r installing packages and loading libraries, echo=TRUE, include=FALSE, message=TRUE}
+#install.packages("remotes")
+remotes::install_github("MRCIEU/gwasvcf")
+remotes::install_github("MRCIEU/TwoSampleMR")
+
+#install.packages("devtools")
+library(devtools)
+library(remotes)
+library(xtable)
+library(xfun)
+library(TwoSampleMR)
+library(ggplot2)
+library(knitr)
+library(dplyr)
+library(stringr)
+```
+
+### Loading data:
+```{r}
+load("un_bmi_instrument.RData")
+load("un_hei_instrument.RData")
+load("un_bmi_wei.RData")
+load("un_hei_wei.RData")
+load("un_ed_bmi_out.RData")
+load("un_ed_hei_out.RData")
+load("un_ed_instrument.RData")
+load("un_ed_wei.RData")
+load("un_hei_out.RData")
+load("un_bmi_out.RData")
+load("wf_hei_instrument.RData")
+load("wf_bmi_instrument.RData")
+load("wf_hei_wei.RData")
+load("wf_bmi_wei.RData")
+load("wf_hei_ed_out.RData")
+load("wf_bmi_ed_out.RData")
+load("wf_rev_ed_instrument.RData")
+load("wf_rev_ed_wei.RData")
+load("wf_rev_hei_out.RData")
+load("wf_rev_bmi_out.RData")
+```
+
+# Harmonizing the instruments with their outcome variables:
+### Unrelated individuals, BMI/height -> education direction
+```{r}
+un_bmi_ed_har <- harmonise_data(un_bmi_instrument, un_ed_bmi_out)
+un_hei_ed_har <- harmonise_data(un_hei_instrument, un_ed_hei_out)
+```
+
+### Unrelated individuals, education -> trait direction
+```{r}
+un_ed_bmi_har <- harmonise_data(un_ed_instrument, un_bmi_out) # check that the same instrument is used in both harmonies in previous 
+un_ed_hei_har <- harmonise_data(un_ed_instrument, un_hei_out)
+```
+### Within-Family trait -> education direction
+```{r}
+wf_bmi_ed_har <- harmonise_data(wf_bmi_instrument, wf_bmi_ed_out)
+wf_hei_ed_har <- harmonise_data(wf_hei_instrument, wf_hei_ed_out)
+```
+
+### Within-family education -> trait direction:
+```{r}
+wf_ed_bmi_har <- harmonise_data(wf_rev_ed_instrument, wf_rev_bmi_out)
+wf_ed_hei_har <- harmonise_data(wf_rev_ed_instrument, wf_rev_hei_out) # same here
+```
+
+# Performing the Mendelian Randomisation
+### Unrelated individuals MR, BMI/Height -> educational achievement
+```{r}
+# performing Mendelian randomization
+un_bmi_ed_res <- mr(un_bmi_ed_har, method_list = c("mr_two_sample_ml"))
+un_hei_ed_res <- mr(un_hei_ed_har, method_list = c("mr_two_sample_ml"))
+
+# extracting the estimates and their standard errors:
+un_bmi_ed_beta <- un_bmi_ed_res$b
+un_bmi_ed_se <- un_bmi_ed_res$se
+
+un_hei_ed_beta <- un_hei_ed_res$b
+un_hei_ed_se <- un_hei_ed_res$se
+
+# deriving the instrument F-statistic
+un_bmi_ed_f_stat <- (un_bmi_ed_beta/un_bmi_ed_se)^2
+un_hei_ed_f_stat <- (un_hei_ed_beta/un_hei_ed_se)^2
+
+# computing 95% confidence intervals:
+un_bmi_ed_lower <- un_bmi_ed_beta - 1.96 * un_bmi_ed_se
+un_bmi_ed_upper <- un_bmi_ed_beta + 1.96 * un_bmi_ed_se
+
+un_hei_ed_lower <- un_hei_ed_beta - 1.96 * un_hei_ed_se
+un_hei_ed_upper <- un_hei_ed_beta + 1.96 * un_hei_ed_se
+```
+
+### Unrelated individuals MR, educational attainment on BMI/height
+```{r}
+un_ed_bmi_res <- mr(un_ed_bmi_har, method_list = c("mr_two_sample_ml"))
+un_ed_hei_res <- mr(un_ed_hei_har, method_list = c("mr_two_sample_ml"))
+
+un_ed_bmi_beta <- un_ed_bmi_res$b
+un_ed_bmi_se <- un_ed_bmi_res$se
+
+un_ed_hei_beta <- un_ed_hei_res$b
+un_ed_hei_se <- un_ed_hei_res$se
+
+un_ed_bmi_f_stat <- (un_ed_bmi_beta/un_ed_bmi_se)^2
+un_ed_hei_f_stat <- (un_ed_hei_beta/un_ed_hei_se)^2
+
+un_ed_bmi_lower <- un_ed_bmi_beta - 1.96 * un_ed_bmi_se
+un_ed_bmi_upper <- un_ed_bmi_beta + 1.96 * un_ed_bmi_se
+
+un_ed_hei_lower <- un_ed_hei_beta - 1.96 * un_ed_hei_se
+un_ed_hei_upper <- un_ed_hei_beta + 1.96 * un_ed_hei_se
+```
+
+
+### Within-family MR analysis of phsyical traits on educational attainment
+```{r}
+wf_bmi_ed_res <- mr(wf_bmi_ed_har, method_list = c("mr_two_sample_ml"))
+wf_hei_ed_res <- mr(wf_hei_ed_har, method_list = c("mr_two_sample_ml"))
+
+wf_bmi_ed_beta <- wf_bmi_ed_res$b
+wf_hei_ed_beta <- wf_hei_ed_res$b
+
+wf_bmi_ed_se <- wf_bmi_ed_res$se
+wf_hei_ed_se <- wf_hei_ed_res$se
+
+wf_bmi_ed_f_stat <- (wf_bmi_ed_beta/wf_bmi_ed_se)^2
+wf_hei_ed_f_stat <- (wf_hei_ed_beta/wf_hei_ed_se)^2
+
+wf_bmi_ed_lower <- wf_bmi_ed_beta - 1.96 * wf_bmi_ed_se
+wf_hei_ed_lower <- wf_hei_ed_beta - 1.96 * wf_hei_ed_se
+
+wf_bmi_ed_upper <- wf_bmi_ed_beta + 1.96 * wf_bmi_ed_se
+wf_hei_ed_upper <- wf_hei_ed_beta + 1.96 * wf_hei_ed_se
+```
+
+
+### Within-family MR analysis of educational attainment on physical traits
+```{r}
+wf_ed_bmi_res <- mr(wf_ed_bmi_har, method_list = c("mr_two_sample_ml"))
+wf_ed_hei_res <- mr(wf_ed_hei_har, method_list = c("mr_two_sample_ml"))
+
+wf_ed_bmi_beta <- wf_ed_bmi_res$b
+wf_ed_hei_beta <- wf_ed_hei_res$b
+
+wf_ed_bmi_se <- wf_ed_bmi_res$se
+wf_ed_hei_se <- wf_ed_hei_res$se
+
+wf_ed_bmi_f_stat <- (wf_ed_bmi_beta/wf_ed_bmi_se)^2
+wf_ed_hei_f_stat <- (wf_ed_bmi_beta/wf_ed_hei_se)^2
+
+wf_ed_bmi_lower <- wf_ed_bmi_beta - 1.96 * wf_ed_bmi_se
+wf_ed_hei_lower <- wf_ed_hei_beta - 1.96 * wf_ed_hei_se
+
+wf_ed_bmi_upper <- wf_ed_bmi_beta + 1.96 * wf_ed_bmi_se
+wf_ed_hei_upper <- wf_ed_hei_beta + 1.96 * wf_ed_hei_se
+```
+
+
+## Creating tidy tables:
+### Unrelated physical -> education
+```{r}
+# removing some unecessary variables which take up a lot of space
+un_bmi_ed_tab <- un_bmi_ed_res %>% select(-c(id.exposure, id.outcome))
+un_hei_ed_tab <- un_hei_ed_res %>% select(-c(id.exposure, id.outcome))
+```
+
+### Unrelated education -> BMI/Height
+```{r}
+un_ed_bmi_tab <- un_ed_bmi_res %>% select(-c(id.exposure, id.outcome))
+un_ed_hei_tab <- un_ed_hei_res %>% select(-c(id.exposure, id.outcome))
+```
+
+### Within-family physical -> education
+```{r}
+wf_bmi_ed_tab <- wf_bmi_ed_res %>% select(-c(id.exposure, id.outcome))
+wf_hei_ed_tab <- wf_hei_ed_res %>% select(-c(id.exposure, id.outcome))
+```
+
+### Within-family education -> physical
+```{r}
+wf_ed_bmi_tab <- wf_ed_bmi_res %>% select(-c(id.exposure, id.outcome))
+wf_ed_hei_tab <- wf_ed_hei_res %>% select(-c(id.exposure, id.outcome))
+```
+
+```{r}
+# creating formatted tibbles for each analysis for easy binding:
+un_bmi_ed_tbl <- tibble(
+  Exposure = "BMI",
+  Outcome = "Education",
+  Sample = "Unrelated",
+  `Estimated Coefficient` = un_bmi_ed_beta,
+  `Standard error` = un_bmi_ed_se,
+  `p-value` = un_bmi_ed_res$pval,
+  `Lower 95% CI` = un_bmi_ed_lower,
+  `Upper 95% CI` = un_bmi_ed_upper
+)
+
+un_hei_ed_tbl <- tibble(
+  Exposure = "Height",
+  Outcome = "Education",
+  Sample = "Unrelated",
+  `Estimated Coefficient` = un_hei_ed_beta,
+  `Standard error` = un_hei_ed_se,
+  `p-value` = un_hei_ed_res$pval,
+  `Lower 95% CI` = un_hei_ed_lower,
+  `Upper 95% CI` = un_hei_ed_upper
+)
+
+un_ed_bmi_tbl <- tibble(
+  Exposure = "Education",
+  Outcome = "BMI",
+  Sample = "Unrelated",
+  `Estimated Coefficient` = un_ed_bmi_beta,
+  `Standard error` = un_ed_bmi_se,
+  `p-value` = un_ed_bmi_res$pval,
+  `Lower 95% CI` = un_ed_bmi_lower,
+  `Upper 95% CI` = un_ed_bmi_upper
+)
+
+un_ed_hei_tbl <- tibble(
+  Exposure = "Education",
+  Outcome = "Height",
+  Sample = "Unrelated",
+  `Estimated Coefficient` = un_ed_hei_beta,
+  `Standard error` = un_ed_hei_se,
+  `p-value` = un_ed_hei_res$pval,
+  `Lower 95% CI` = un_ed_hei_lower,
+  `Upper 95% CI` = un_ed_hei_upper
+)
+
+wf_bmi_ed_tbl <- tibble(
+  Exposure = "BMI",
+  Outcome = "Education",
+  Sample = "Within family",
+  `Estimated Coefficient` = wf_bmi_ed_beta,
+  `Standard error` = wf_bmi_ed_se,
+  `p-value` = wf_bmi_ed_res$pval,
+  `Lower 95% CI` = wf_bmi_ed_lower,
+  `Upper 95% CI` = wf_bmi_ed_upper
+)
+
+wf_hei_ed_tbl <- tibble(
+  Exposure = "Height",
+  Outcome = "Education",
+  Sample = "Within family",
+  `Estimated Coefficient` = wf_hei_ed_beta,
+  `Standard error` = wf_hei_ed_se,
+  `p-value` = wf_hei_ed_res$pval,
+  `Lower 95% CI` = wf_hei_ed_lower,
+  `Upper 95% CI` = wf_hei_ed_upper
+)
+
+wf_ed_bmi_tbl <- tibble(
+  Exposure = "Education",
+  Outcome = "BMI",
+  Sample = "Within family",
+  `Estimated Coefficient` = wf_ed_bmi_beta,
+  `Standard error` = wf_ed_bmi_se,
+  `p-value` = wf_ed_bmi_res$pval,
+  `Lower 95% CI` = wf_ed_bmi_lower,
+  `Upper 95% CI` = wf_ed_bmi_upper
+)
+
+wf_ed_hei_tbl <- tibble(
+  Exposure = "Education",
+  Outcome = "Height",
+  Sample = "Within family",
+  `Estimated Coefficient` = wf_ed_hei_beta,
+  `Standard error` = wf_ed_hei_se,
+  `p-value` = wf_ed_hei_res$pval,
+  `Lower 95% CI` = wf_ed_hei_lower,
+  `Upper 95% CI` = wf_ed_hei_upper
+)
+```
+
+
+```{r}
+# binding all results into one table:
+all_results <- bind_rows(
+  as.data.frame(un_bmi_ed_tbl),
+  as.data.frame(un_hei_ed_tbl),
+  as.data.frame(un_ed_bmi_tbl),
+  as.data.frame(un_ed_hei_tbl),
+  as.data.frame(wf_bmi_ed_tbl),
+  as.data.frame(wf_hei_ed_tbl),
+  as.data.frame(wf_ed_bmi_tbl),
+  as.data.frame(wf_ed_hei_tbl)
+)
+
+# printing to latex:
+latex_code <- xtable(t(all_results), digits=4)
+print(latex_code, type="latex")
+```
+
+
+```{r}
+# and doing the same for the F-statistics:
+all_f_statistics <- bind_cols(
+  as.data.frame(un_bmi_ed_f_stat),
+  as.data.frame(un_hei_ed_f_stat),
+  as.data.frame(un_ed_bmi_f_stat),
+  as.data.frame(un_ed_hei_f_stat),
+  as.data.frame(wf_bmi_ed_f_stat),
+  as.data.frame(wf_hei_ed_f_stat),
+  as.data.frame(wf_ed_bmi_f_stat),
+  as.data.frame(wf_ed_hei_f_stat),
+)
+
+latex_code <- xtable(t(all_f_statistics), digits=4)
+print(latex_code, type="latex")
+```
+
+# Sensitivity analyses
+## Tests for heterogeneity
+### Unrelated individuals, BMI/Height -> education
+```{r}
+# performing heterogeneity analysis:
+un_bmi_ed_het <- mr_heterogeneity(un_bmi_ed_har, method_list = c("mr_two_sample_ml"))
+un_hei_ed_het <- mr_heterogeneity(un_hei_ed_har, method_list = c("mr_two_sample_ml"))
+
+# removing some spacious and unecessary columns
+un_bmi_ed_het <- un_bmi_ed_het %>% select(-c(id.exposure, id.outcome))
+un_hei_ed_het <- un_hei_ed_het %>% select(-c(id.exposure, id.outcome))
+```
+
+### Unrelated individuals, education -> BMI/Height
+```{r}
+un_ed_bmi_het <- mr_heterogeneity(un_ed_bmi_har, method_list = c("mr_two_sample_ml"))
+un_ed_hei_het <- mr_heterogeneity(un_ed_hei_har, method_list = c("mr_two_sample_ml"))
+
+un_ed_bmi_het <- un_ed_bmi_het %>% select(-c(id.exposure, id.outcome))
+un_ed_hei_het <- un_ed_hei_het %>% select(-c(id.exposure, id.outcome))
+```
+
+### Within-family trait -> education
+```{r}
+wf_bmi_ed_het <- mr_heterogeneity(wf_bmi_ed_har, method_list = c("mr_two_sample_ml"))
+wf_hei_ed_het <- mr_heterogeneity(wf_hei_ed_har, method_list = c("mr_two_sample_ml"))
+
+wf_bmi_ed_het <- wf_bmi_ed_het %>% select(-c(id.exposure, id.outcome))
+wf_hei_ed_het <- wf_hei_ed_het %>% select(-c(id.exposure, id.outcome))
+```
+
+### Within-family edcation -> trait 
+```{r}
+wf_ed_bmi_het <- mr_heterogeneity(wf_ed_bmi_har, method_list = c("mr_two_sample_ml"))
+wf_ed_hei_het <- mr_heterogeneity(wf_ed_hei_har, method_list = c("mr_two_sample_ml"))
+
+wf_ed_bmi_het <- wf_ed_bmi_het %>% select(-c(id.exposure, id.outcome))
+wf_ed_hei_het <- wf_ed_hei_het %>% select(-c(id.exposure, id.outcome))
+```
+
+
+```{r}
+all_heterogeneity_tests <- bind_rows(
+  un_bmi_ed_het,
+  un_hei_ed_het,
+  un_ed_bmi_het,
+  un_ed_hei_het,
+  wf_bmi_ed_het,
+  wf_hei_ed_het,
+  wf_ed_bmi_het,
+  wf_ed_hei_het
+) %>% select(-method)
+
+latex_code <- xtable(all_heterogeneity_tests, digits=4)
+print(latex_code, type="latex")
+```
+
+## Tests for horizontal pleiotropy
+### Unrelated individuals, trait -> education
+```{r}
+un_bmi_ed_ple <- mr_pleiotropy_test(un_bmi_ed_har)
+un_hei_ed_ple <- mr_pleiotropy_test(un_hei_ed_har)
+
+un_bmi_ed_ple <- un_bmi_ed_ple %>% select(-c(id.exposure, id.outcome))
+un_hei_ed_ple <- un_hei_ed_ple %>% select(-c(id.exposure, id.outcome))
+```
+
+### Unrelated individuals, education -> trait
+```{r}
+un_ed_bmi_ple <- mr_pleiotropy_test(un_ed_bmi_har)
+un_ed_hei_ple <- mr_pleiotropy_test(un_ed_hei_har)
+
+un_ed_bmi_ple <- un_ed_bmi_ple %>% select(-c(id.exposure, id.outcome))
+un_ed_hei_ple <- un_ed_hei_ple %>% select(-c(id.exposure, id.outcome))
+```
+
+### Within-family trait -> education
+```{r}
+wf_bmi_ed_ple <- mr_pleiotropy_test(wf_bmi_ed_har)
+wf_hei_ed_ple <- mr_pleiotropy_test(wf_hei_ed_har)
+
+wf_bmi_ed_ple <- wf_bmi_ed_ple %>% select(-c(id.exposure, id.outcome))
+wf_hei_ed_ple <- wf_hei_ed_ple %>% select(-c(id.exposure, id.outcome))
+```
+
+### Within-family education -> trait
+```{r}
+wf_ed_bmi_ple <- mr_pleiotropy_test(wf_ed_bmi_har)
+wf_ed_hei_ple <- mr_pleiotropy_test(wf_ed_hei_har)
+
+wf_ed_bmi_ple <- wf_ed_bmi_ple %>% select(-c(id.exposure, id.outcome))
+wf_ed_hei_ple <- wf_ed_hei_ple %>% select(-c(id.exposure, id.outcome))
+```
+
+```{r}
+all_pleiotropy_tests <- bind_rows(
+  un_bmi_ed_ple,
+  un_hei_ed_ple,
+  un_ed_bmi_ple,
+  un_ed_hei_ple,
+  wf_bmi_ed_ple,
+  wf_hei_ed_ple,
+  wf_ed_bmi_ple,
+  wf_ed_hei_ple
+)
+
+knitr::kable(all_pleiotropy_tests)
+
+latex_code <- xtable(all_pleiotropy_tests, digits=4)
+print(latex_code, type = "latex", file = "")
+```
+
+```{r}
+un_ed_bmi_sums <- data.frame(
+  Variables = names(un_ed_bmi_out),
+  Mean = sapply(un_ed_bmi_out, mean, na.rm = TRUE),
+  Median = sapply(un_ed_bmi_out, median, na.rm = TRUE),
+  Min = sapply(un_ed_bmi_out, min, na.rm = TRUE),
+  Max = sapply(un_ed_bmi_out, max, na.rm = TRUE)
+)
+un_ed_bmi_sums
+```
+
+
+
+
+# Generating summary statistics:
+## For outcome variables:
+```{r}
+un_ed_bmi_out_sum <- un_ed_bmi_out %>% 
+  select(beta.outcome, se.outcome, samplesize.outcome, pval.outcome) %>% 
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  rename_with(~ str_remove(., "\\.outcome"), everything())
+
+un_ed_hei_out_sum <- un_ed_hei_out %>% 
+  select(beta.outcome, se.outcome, samplesize.outcome, pval.outcome) %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  rename_with(~ str_remove(., "\\.outcome"), everything())
+
+un_bmi_out_sum <- un_bmi_out %>% 
+  select(beta.outcome, se.outcome, samplesize.outcome, pval.outcome) %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  rename_with(~ str_remove(., "\\.outcome"), everything())
+
+un_hei_out_sum <- un_hei_out %>% 
+  select(beta.outcome, se.outcome, samplesize.outcome, pval.outcome) %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  rename_with(~ str_remove(., "\\.outcome"), everything())
+
+wf_bmi_out_sum <- wf_bmi_ed_out %>% 
+  select(beta.outcome, se.outcome, samplesize.outcome, pval.outcome) %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  rename_with(~ str_remove(., "\\.outcome"), everything())
+
+wf_hei_out_sum <- wf_hei_ed_out %>% 
+  select(beta.outcome, se.outcome, samplesize.outcome, pval.outcome) %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  rename_with(~ str_remove(., "\\.outcome"), everything())
+
+wf_bmi_out_sum_rev <- wf_rev_bmi_out %>% 
+  select(beta.outcome, se.outcome, samplesize.outcome, pval.outcome) %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  rename_with(~ str_remove(., "\\.outcome"), everything())
+
+wf_hei_out_sum_rev <- wf_rev_hei_out %>% 
+  select(beta.outcome, se.outcome, samplesize.outcome, pval.outcome) %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  rename_with(~ str_remove(., "\\.outcome"), everything())
+```
+```{r}
+summary_stats <- bind_rows(
+  un_ed_bmi_out_sum,
+  un_ed_hei_out_sum,
+  un_bmi_out_sum,
+  un_hei_out_sum,
+  wf_bmi_out_sum,
+  wf_hei_out_sum,
+  wf_bmi_out_sum_rev,
+  wf_hei_out_sum_rev
+)
+
+latex_code <- xtable(summary_stats, digits=4)
+print(latex_code, type = "latex", file = "")
+```
+
+
+```{r}
+# defining a function to create coefficient plots
+coeff_plot <- function(data, effect_title) {
+  ggplot(data[data$Effect == effect_title, ], aes(x = Analysis_Type, y = Estimate, ymin = Lower_CI, ymax = Upper_CI, color = Analysis_Type)) +
+    geom_pointrange(position = position_dodge(width = 0.3), size = 0.5) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = "none") + # Remove the legend
+    labs(
+      title = paste("Coefficient Plots:", gsub("EA", "Educational Attainment", effect_title)),
+      x = "Analysis Type",
+      y = "Estimate",
+      caption = "Error bars represent 95% confidence intervals"
+    ) +
+    scale_color_manual(values = c("Unrelated" = "lightblue", "Within-family" = "pink"))
+}
+
+# applying the function to create plots for each regression
+plot_bmi_on_ed <- coeff_plot(results, "BMI on ED")
+plot_height_on_ed <- coeff_plot(results, "Height on ED")
+plot_ed_on_bmi <- coeff_plot(results, "ED on BMI")
+plot_ed_on_height <- coeff_plot(results, "ED on Height")
+
+# saving
+ggsave("plot_bmi_on_educational_attainment.png", plot_bmi_on_ed, width = 10, height = 6)
+ggsave("plot_height_on_educational_attainment.png", plot_height_on_ed, width = 10, height = 6)
+ggsave("plot_educational_attainment_on_bmi.png", plot_ed_on_bmi, width = 10, height = 6)
+ggsave("plot_educational_attainment_on_height.png", plot_ed_on_height, width = 10, height = 6)
+```
+

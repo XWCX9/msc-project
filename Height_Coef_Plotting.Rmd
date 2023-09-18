@@ -29,7 +29,6 @@ library(gridExtra)
 all_height_data$regression <- factor(all_height_data$regression, levels = c("phenotypic", "mr_unrel", "mr_unrel_PCs", "mr_wf", "mr_wf_PCs"))
 
 
-# 2. Merge this mapping into all_bmi_data
 mapping_df <- data.frame(
   depvar = c("zNPREG05", "zNPENG05", "zNPLES05", "zNPENG08", "zNPLES08", "zNPREG08", "zNPLES09", "zNPREG09"),
   ExamDescription = c("Grade 5 Numeracy", "Grade 5 English", "Grade 5 Reading",
@@ -41,16 +40,14 @@ all_height_data <- merge(all_height_data, mapping_df, by = "depvar", all.x = TRU
 
 
 exam_wise_plot_height <- function(exam) {
-  # Filtering the data by exam:
   data_for_plot <- all_height_data[all_height_data$depvar == exam,]
   
-  # Getting the descriptive title for the current exam
   descriptive_title <- unique(data_for_plot$ExamDescription.x)
   
   plot <- ggplot(data_for_plot, aes(x = regression, y = coef, color = regression)) +
     geom_point() +
     geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.2) +
-    geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 0.5) + # Add horizontal line at y=0
+    geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 0.5) +
     theme_minimal() +
     labs(title = paste("Coefficient Plot Height for", descriptive_title, ""), y = "") +
     theme(
@@ -68,10 +65,8 @@ exam_wise_plot_height <- function(exam) {
 }
 
 
-# Generating the plots
 plots_height <- lapply(unique(all_height_data$depvar), exam_wise_plot_height)
 
-# Printing the plots without the legend
 print(plots_height)
 
 ```
@@ -92,7 +87,6 @@ legend_plot_height <- ggplot(all_height_data[all_height_data$depvar == unique(al
       legend.position = "right"
     )
 
-# Printing the legend plot
 print(legend_plot_height)
 
 ```

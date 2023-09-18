@@ -46,7 +46,7 @@ exam_wise_plot_bmi <- function(exam) {
   plot <- ggplot(data_for_plot, aes(x = regression, y = coef, color = regression)) +
     geom_point() +
     geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.2) +
-    geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 0.5) + # Add horizontal line at y=0
+    geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 0.5) +
     theme_minimal() +
     labs(title = paste("Coefficient Plot BMI for", descriptive_title, ""), y = "") +
     theme(
